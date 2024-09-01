@@ -1,0 +1,42 @@
+{
+  "name": "tv-show-admin-dashboard",
+  "version": "1.0.0",
+  "main": "src/server.ts",
+  "scripts": {
+    "start": "ts-node-dev src/server.ts",
+    "build": "tsc",
+    "serve": "node dist/server.js",
+    "populate-db": "ts-node-dev src/populate.ts",
+    "test-api": "ts-node-dev src/tests/testApi.ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.6",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.17.1",
+    "express-rate-limit": "^5.2.6",
+    "express-validator": "^6.12.0",
+    "helmet": "^4.6.0",
+    "mongoose": "^5.10.9",
+    "morgan": "^1.10.0",
+    "swagger-jsdoc": "^6.1.0",
+    "swagger-ui-express": "^4.1.6",
+    "uuid": "^10.0.0",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.0",
+    "@types/cors": "^2.8.5",
+    "@types/express": "^4.17.11",
+    "@types/express-rate-limit": "^5.1.3",
+    "@types/morgan": "^1.9.1",
+    "@types/node": "^14.14.31",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^4.2.3"
+  }
+}

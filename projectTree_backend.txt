@@ -1,0 +1,1377 @@
+check_type_definitions.sh:
+#!/bin/bash
+
+# List of packages to check
+packages=(
+    "body-parser"
+    "cors"
+    "express"
+    "express-rate-limit"
+    "express-validator"
+    "helmet"
+    "mongoose"
+    "morgan"
+    "uuid"
+    "winston"
+    "swagger-jsdoc"
+    "swagger-ui-express"
+)
+
+echo "Checking for type definitions in packages..."
+
+for package in "${packages[@]}"; do
+    echo -n "$package: "
+    if npm info "$package" | grep -q "types"; then
+        echo "Includes type definitions"
+    else
+        echo "Does NOT include type definitions"
+    fi
+done
+
+
+package.json:
+{
+  "name": "tv-show-admin-dashboard",
+  "version": "1.0.0",
+  "main": "src/server.ts",
+  "scripts": {
+    "start": "ts-node-dev src/server.ts",
+    "build": "tsc",
+    "serve": "node dist/server.js",
+    "populate-db": "ts-node-dev src/populate.ts",
+    "test-api": "ts-node-dev src/tests/testApi.ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.6",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.17.1",
+    "express-rate-limit": "^5.2.6",
+    "express-validator": "^6.12.0",
+    "helmet": "^4.6.0",
+    "mongoose": "^5.10.9",
+    "morgan": "^1.10.0",
+    "swagger-jsdoc": "^6.1.0",
+    "swagger-ui-express": "^4.1.6",
+    "uuid": "^10.0.0",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.0",
+    "@types/cors": "^2.8.5",
+    "@types/express": "^4.17.11",
+    "@types/express-rate-limit": "^5.1.3",
+    "@types/morgan": "^1.9.1",
+    "@types/node": "^14.14.31",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^4.2.3"
+  }
+}
+
+
+src/
+  controllers/
+    episodeController.ts:
+    import { Request, Response } from 'express';
+import { Episode } from '../models/Episode';
+
+export const getEpisodes = async (req: Request, res: Response) => {
+    try {
+        const episodes = await Episode.find({ season: req.params.seasonId });
+        res.json(episodes);
+    } catch (error) {
+        throw new Error('Failed to fetch episodes');
+    }
+};
+
+export const addEpisode = async (req: Request, res: Response) => {
+    try {
+        const newEpisode = new Episode(req.body);
+        await newEpisode.save();
+        res.json(newEpisode);
+    } catch (error) {
+        throw new Error('Failed to add episode');
+    }
+};
+
+export const updateEpisode = async (req: Request, res: Response) => {
+    try {
+        const updatedEpisode = await Episode.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updatedEpisode) {
+            const error = new Error('Episode not found');
+            (error as any).status = 404; // Not found
+            throw error;
+        }
+        res.json(updatedEpisode);
+    } catch (error) {
+        throw new Error('Failed to update episode');
+    }
+};
+
+export const deleteEpisode = async (req: Request, res: Response) => {
+    try {
+        const deletedEpisode = await Episode.findByIdAndDelete(req.params.id);
+        if (!deletedEpisode) {
+            const error = new Error('Episode not found');
+            (error as any).status = 404; // Not found
+            throw error;
+        }
+        res.sendStatus(204);
+    } catch (error) {
+        throw new Error('Failed to delete episode');
+    }
+};
+
+
+    paymentController.ts:
+    import { Request, Response } from 'express';
+import { Payment } from '../models/Payment';
+import { validationResult } from 'express-validator';
+
+export const getPayments = async (req: Request, res: Response) => {
+    try {
+        const payments = await Payment.find().populate('season');
+        res.json(payments);
+    } catch (error) {
+        throw new Error('Failed to fetch payments');
+    }
+};
+
+export const addPayment = async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const error = new Error('Validation failed');
+        (error as any).status = 400;
+        throw error;
+    }
+
+    try {
+        const newPayment = new Payment(req.body);
+        await newPayment.save();
+        res.json(newPayment);
+    } catch (error) {
+        console.log(error);
+        throw new Error('Failed to add payment');
+    }
+};
+
+export const updatePayment = async (req: Request, res: Response) => {
+    try {
+        const updatedPayment = await Payment.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updatedPayment) {
+            const error = new Error('Payment not found');
+            (error as any).status = 404;
+            throw error;
+        }
+        res.json(updatedPayment);
+    } catch (error) {
+        throw new Error('Failed to update payment');
+    }
+};
+
+export const deletePayment = async (req: Request, res: Response) => {
+    try {
+        const deletedPayment = await Payment.findByIdAndDelete(req.params.id);
+        if (!deletedPayment) {
+            const error = new Error('Payment not found');
+            (error as any).status = 404;
+            throw error;
+        }
+        res.sendStatus(204);
+    } catch (error) {
+        throw new Error('Failed to delete payment');
+    }
+};
+
+
+    seasonController.ts:
+    import { Request, Response } from 'express';
+import { Season } from '../models/Season';
+
+export const getSeasons = async (req: Request, res: Response) => {
+    try {
+        const seasons = await Season.find({ tvSeries: req.params.tvSeriesId }).populate('userIds'); // Populate userIds
+        res.json(seasons);
+    } catch (error) {
+        throw new Error('Failed to fetch seasons');
+    }
+};
+
+export const addSeason = async (req: Request, res: Response) => {
+    try {
+        const newSeason = new Season(req.body);
+        await newSeason.save();
+        res.json(newSeason);
+    } catch (error) {
+        throw new Error('Failed to add season');
+    }
+};
+
+export const updateSeason = async (req: Request, res: Response) => {
+    try {
+        const updatedSeason = await Season.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('userIds'); // Populate userIds
+        res.json(updatedSeason);
+    } catch (error) {
+        throw new Error('Failed to update season');
+    }
+};
+
+export const deleteSeason = async (req: Request, res: Response) => {
+    try {
+        await Season.findByIdAndDelete(req.params.id);
+        res.sendStatus(204);
+    } catch (error) {
+        throw new Error('Failed to delete season');
+    }
+};
+
+
+    tvSeriesController.ts:
+    import { Request, Response } from 'express';
+import { body, validationResult } from 'express-validator';
+import { TVSeries } from '../models/TVSeries';
+
+export const tvSeriesValidationRules = () => {
+    return [
+        body('title').isString().notEmpty().withMessage('Title is required'),
+        body('description').isString().notEmpty().withMessage('Description is required'),
+    ];
+};
+
+export const getTVSeries = async (req: Request, res: Response) => {
+    try {
+        const series = await TVSeries.find();
+        res.json(series);
+    } catch (error) {
+        throw new Error('Failed to fetch TV series');
+    }
+};
+
+export const addTVSeries = async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const error = new Error('Validation failed');
+        (error as any).status = 400; // Set status code for validation errors
+        throw error;
+    }
+
+    try {
+        const newSeries = new TVSeries(req.body);
+        await newSeries.save();
+        res.json(newSeries);
+    } catch (error) {
+        throw new Error('Failed to add TV series');
+    }
+};
+
+export const updateTVSeries = async (req: Request, res: Response) => {
+    try {
+        const updatedSeries = await TVSeries.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updatedSeries) {
+            const error = new Error('TV series not found');
+            (error as any).status = 404; // Not found
+            throw error;
+        }
+        res.json(updatedSeries);
+    } catch (error) {
+        throw new Error('Failed to update TV series');
+    }
+};
+
+export const deleteTVSeries = async (req: Request, res: Response) => {
+    try {
+        const deletedSeries = await TVSeries.findByIdAndDelete(req.params.id);
+        if (!deletedSeries) {
+            const error = new Error('TV series not found');
+            (error as any).status = 404; // Not found
+            throw error;
+        }
+        res.sendStatus(204);
+    } catch (error) {
+        throw new Error('Failed to delete TV series');
+    }
+};
+
+
+  logger.ts:
+  import { createLogger, format, transports } from 'winston';
+import path from 'path';
+
+const logger = createLogger({
+    level: 'error',
+    format: format.combine(
+        format.timestamp(),
+        format.json()
+    ),
+    transports: [
+        new transports.File({ filename: path.join(__dirname, 'error.log') })
+    ],
+});
+
+export default logger;
+
+
+  middleware/
+    auth.ts:
+    import { Request, Response, NextFunction } from 'express';
+import { User } from '../models/User';
+
+const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    // Assume user ID is passed in headers for simplicity
+    // In real world setup that should be handled through json-web token
+    const userId = req.headers['x-user-id'];
+
+    if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user || user.role !== 'admin') {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+        next();
+    } catch (error) {
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+export default authMiddleware;
+
+
+    errorHandler.ts:
+    import { Request, Response, NextFunction } from 'express';
+import logger from '../logger';
+
+const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+    const requestId = req.headers['x-request-id'] || 'N/A';
+
+    // Log the error with the request ID
+    logger.error({
+        message: err.message,
+        stack: err.stack,
+        method: req.method,
+        url: req.url,
+        requestId: requestId,
+        timestamp: new Date().toISOString(),
+    });
+
+    // Send a generic error response with the request ID
+    res.status(err.status || 500).json({
+        error: {
+            message: err.message || 'Internal Server Error',
+            requestId: requestId
+        },
+    });
+};
+
+export default errorHandler;
+
+
+    requestId.ts:
+    import { Request, Response, NextFunction } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+
+const requestIdMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    const requestId = uuidv4();
+    req.headers['x-request-id'] = requestId;
+    res.setHeader('X-Request-Id', requestId);
+    next();
+};
+
+export default requestIdMiddleware;
+
+
+  models/
+    Episode.ts:
+    import mongoose, { Document, Schema } from 'mongoose';
+
+export interface IEpisode extends Document {
+    title: string;
+    seasonId: mongoose.Types.ObjectId;
+}
+
+const episodeSchema: Schema = new Schema({
+    title: { type: String, required: true },
+    season: { type: Schema.Types.ObjectId, ref: 'Season', required: true },
+});
+
+export const Episode = mongoose.model<IEpisode>('Episode', episodeSchema);
+
+
+    Payment.ts:
+    import mongoose, { Document, Schema } from 'mongoose';
+
+export interface IPayment extends Document {
+    userId: string;
+    seasonId: mongoose.Types.ObjectId;
+    amount: number;
+    date: Date;
+}
+
+const paymentSchema: Schema = new Schema({
+    userId: { type: String, required: true },
+    season: { type: Schema.Types.ObjectId, ref: 'Season', required: true },
+    amount: { type: Number, required: true },
+    date: { type: Date, default: Date.now },
+});
+
+export const Payment = mongoose.model<IPayment>('Payment', paymentSchema);
+
+
+    Season.ts:
+    import mongoose, { Document, Schema } from 'mongoose';
+
+export interface ISeason extends Document {
+    title: string;
+    tvSeriesId: mongoose.Types.ObjectId;
+    userIds: mongoose.Types.ObjectId[]; // New field to store user IDs
+}
+
+const seasonSchema: Schema = new Schema({
+    title: { type: String, required: true },
+    tvSeries: { type: Schema.Types.ObjectId, ref: 'TVSeries', required: true },
+    userIds: [{ type: Schema.Types.ObjectId, ref: 'User' }]
+});
+
+export const Season = mongoose.model<ISeason>('Season', seasonSchema);
+
+
+    TVSeries.ts:
+    import mongoose, { Document, Schema } from 'mongoose';
+
+export interface ITVSeries extends Document {
+    title: string;
+    description: string;
+}
+
+const tvSeriesSchema: Schema = new Schema({
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+});
+
+export const TVSeries = mongoose.model<ITVSeries>('TVSeries', tvSeriesSchema);
+
+
+    User.ts:
+    import mongoose, { Document, Schema } from 'mongoose';
+
+export interface IUser extends Document {
+    username: string;
+    password: string; // In a real application, this should be hashed
+    role: 'admin' | 'user'; // Define roles
+}
+
+const userSchema: Schema = new Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, enum: ['admin', 'user'], default: 'user' },
+});
+
+export const User = mongoose.model<IUser>('User', userSchema);
+
+
+  populate.ts:
+  import mongoose from 'mongoose';
+import { TVSeries } from './models/TVSeries';
+import { Season } from './models/Season';
+import { Episode } from './models/Episode';
+import { Payment } from './models/Payment';
+import { User } from './models/User';
+import fs from 'fs';
+import path from 'path';
+
+const populateDatabase = async () => {
+    try {
+        // Connect to MongoDB
+        await mongoose.connect('mongodb://localhost:27017/tvshows', {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+
+        // Clear existing data
+        await TVSeries.deleteMany({});
+        await Season.deleteMany({});
+        await Episode.deleteMany({});
+        await Payment.deleteMany({});
+        await User.deleteMany({});
+
+        // Create dummy users
+        const users = await User.insertMany([
+            { username: 'user1', password: 'password1', role: 'user' },
+            { username: 'user2', password: 'password2', role: 'user' },
+            { username: 'admin', password: 'adminpass', role: 'admin' },
+        ]);
+
+        // Create dummy TV series
+        const tvSeries = await TVSeries.insertMany([
+            { title: 'TV Series 1', description: 'Description for TV Series 1' },
+            { title: 'TV Series 2', description: 'Description for TV Series 2' },
+            { title: 'TV Series 3', description: 'Description for TV Series 3' },
+            { title: 'TV Series 4', description: 'Description for TV Series 4' },
+            { title: 'TV Series 5', description: 'Description for TV Series 5' },
+        ]);
+
+        // Create dummy seasons with associated user IDs
+        const seasons = await Season.insertMany([
+            { title: 'Season 1', tvSeries: tvSeries[0]._id, userIds: [users[0]._id, users[1]._id] }, // user1 and user2 have access
+            { title: 'Season 2', tvSeries: tvSeries[0]._id, userIds: [users[1]._id] }, // user2 has access
+            { title: 'Season 3', tvSeries: tvSeries[1]._id, userIds: [users[0]._id] }, // user1 has access
+            { title: 'Season 4', tvSeries: tvSeries[2]._id, userIds: [users[0]._id, users[2]._id] }, // user1 and admin have access
+            { title: 'Season 5', tvSeries: tvSeries[3]._id, userIds: [users[1]._id] }, // user2 has access
+            { title: 'Season 6', tvSeries: tvSeries[4]._id, userIds: [users[0]._id, users[1]._id, users[2]._id] }, // all users have access
+        ]);
+
+        // Create dummy episodes
+        const episodes = await Episode.insertMany([
+            { title: 'Episode 1', season: seasons[0]._id },
+            { title: 'Episode 2', season: seasons[0]._id },
+            { title: 'Episode 1', season: seasons[1]._id },
+            { title: 'Episode 1', season: seasons[2]._id },
+            { title: 'Episode 1', season: seasons[3]._id },
+            { title: 'Episode 1', season: seasons[4]._id },
+            { title: 'Episode 2', season: seasons[4]._id },
+            { title: 'Episode 3', season: seasons[4]._id },
+        ]);
+
+        // Create dummy payments
+        await Payment.insertMany([
+            { userId: users[0]._id.toString(), season: seasons[0]._id, amount: 10, date: new Date() },
+            { userId: users[1]._id.toString(), season: seasons[1]._id, amount: 15, date: new Date() },
+            { userId: users[0]._id.toString(), season: seasons[2]._id, amount: 20, date: new Date() },
+            { userId: users[1]._id.toString(), season: seasons[3]._id, amount: 25, date: new Date() },
+            { userId: users[2]._id.toString(), season: seasons[4]._id, amount: 30, date: new Date() },
+        ]);
+
+        console.log('Database populated with dummy data successfully!');
+
+        // Find the admin user
+        const adminUser = users.find(user => user.role === 'admin');
+
+        if (adminUser) {
+            // Prepare the user ID for the .env file
+            const adminUserId = `ADMIN_USER_ID=${adminUser._id}`;
+
+            // Write the admin user ID to the .env file in root folder
+            const envFilePath = path.join(__dirname, '../../.env');
+            fs.writeFileSync(envFilePath, adminUserId, { flag: 'w' });
+
+            console.log('Admin user ID written to .env file successfully!');
+        } else {
+            console.log('Admin user not found.');
+        }
+
+    } catch (error) {
+        console.error('Error populating database:', error);
+    } finally {
+        // Close the connection
+        await mongoose.connection.close();
+    }
+};
+
+populateDatabase();
+
+
+  routes/
+    index.ts:
+    import { Router } from 'express';
+import swaggerJsDoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+import {
+    getTVSeries,
+    addTVSeries,
+    updateTVSeries,
+    deleteTVSeries,
+    tvSeriesValidationRules
+} from '../controllers/tvSeriesController';
+import {
+    getSeasons,
+    addSeason,
+    updateSeason,
+    deleteSeason
+} from '../controllers/seasonController';
+import {
+    getEpisodes,
+    addEpisode,
+    updateEpisode,
+    deleteEpisode
+} from '../controllers/episodeController';
+import {
+    getPayments,
+    addPayment,
+    updatePayment,
+    deletePayment
+} from '../controllers/paymentController';
+import authMiddleware from '../middleware/auth';
+
+const router = Router();
+
+/**
+ * @swagger
+ * components:
+ *   securitySchemes:
+ *     UserIdHeader:
+ *       type: apiKey
+ *       in: header
+ *       name: x-user-id
+ *   schemas:
+ *     TVSeries:
+ *       type: object
+ *       properties:
+ *         title:
+ *           type: string
+ *           example: "Breaking Bad"
+ *         description:
+ *           type: string
+ *           example: "A high school chemistry teacher turned methamphetamine manufacturer."
+ *     Season:
+ *       type: object
+ *       properties:
+ *         title:
+ *           type: string
+ *           example: "Season 1"
+ *         tvSeriesId:
+ *           type: string
+ *           example: "60d21b4667d0d8992e610c85"
+ *         userIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *             example: "60d21b4667d0d8992e610c88"
+ *     Episode:
+ *       type: object
+ *       properties:
+ *         title:
+ *           type: string
+ *           example: "Pilot"
+ *         seasonId:
+ *           type: string
+ *           example: "60d21b4667d0d8992e610c86"
+ *     Payment:
+ *       type: object
+ *       properties:
+ *         userId:
+ *           type: string
+ *           example: "60d21b4667d0d8992e610c87"
+ *         seasonId:
+ *           type: string
+ *           example: "60d21b4667d0d8992e610c86"
+ *         amount:
+ *           type: number
+ *           example: 9.99
+ *         date:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-10-01T14:48:00.000Z"
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: TVSeries
+ *   description: TV Series management
+ */
+
+/**
+ * @swagger
+ * /tvseries:
+ *   get:
+ *     summary: Get all TV series
+ *     tags: [TVSeries]
+ *     security:
+ *       - UserIdHeader: []
+ *     responses:
+ *       200:
+ *         description: A list of TV series
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/TVSeries'
+ */
+router.get('/tvseries', getTVSeries);
+
+/**
+ * @swagger
+ * /tvseries:
+ *   post:
+ *     summary: Add a new TV series
+ *     tags: [TVSeries]
+ *     security:
+ *       - UserIdHeader: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/TVSeries'
+ *     responses:
+ *       200:
+ *         description: The created TV series
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TVSeries'
+ */
+router.post('/tvseries', authMiddleware, tvSeriesValidationRules(), addTVSeries);
+
+/**
+ * @swagger
+ * /tvseries/{id}:
+ *   put:
+ *     summary: Update a TV series
+ *     tags: [TVSeries]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the TV series to update
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/TVSeries'
+ *     responses:
+ *       200:
+ *         description: The updated TV series
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TVSeries'
+ */
+router.put('/tvseries/:id', authMiddleware, tvSeriesValidationRules(), updateTVSeries);
+
+/**
+ * @swagger
+ * /tvseries/{id}:
+ *   delete:
+ *     summary: Delete a TV series
+ *     tags: [TVSeries]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the TV series to delete
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: TV series deleted successfully
+ */
+router.delete('/tvseries/:id', authMiddleware, deleteTVSeries);
+
+/**
+ * @swagger
+ * tags:
+ *   name: Seasons
+ *   description: Season management
+ */
+
+/**
+ * @swagger
+ * /seasons/{tvSeriesId}:
+ *   get:
+ *     summary: Get all seasons for a TV series
+ *     tags: [Seasons]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: tvSeriesId
+ *         required: true
+ *         description: The ID of the TV series
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A list of seasons
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Season'
+ */
+router.get('/seasons/:tvSeriesId', getSeasons);
+
+/**
+ * @swagger
+ * /seasons:
+ *   post:
+ *     summary: Add a new season
+ *     tags: [Seasons]
+ *     security:
+ *       - UserIdHeader: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Season'
+ *     responses:
+ *       200:
+ *         description: The created season
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Season'
+ */
+router.post('/seasons', authMiddleware, addSeason);
+
+/**
+ * @swagger
+ * /seasons/{id}:
+ *   put:
+ *     summary: Update a season
+ *     tags: [Seasons]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the season to update
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Season'
+ *     responses:
+ *       200:
+ *         description: The updated season
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Season'
+ */
+router.put('/seasons/:id', authMiddleware, updateSeason);
+
+/**
+ * @swagger
+ * /seasons/{id}:
+ *   delete:
+ *     summary: Delete a season
+ *     tags: [Seasons]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the season to delete
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Season deleted successfully
+ */
+router.delete('/seasons/:id', authMiddleware, deleteSeason);
+
+/**
+ * @swagger
+ * tags:
+ *   name: Episodes
+ *   description: Episode management
+ */
+
+/**
+ * @swagger
+ * /episodes/{seasonId}:
+ *   get:
+ *     summary: Get all episodes for a season
+ *     tags: [Episodes]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: seasonId
+ *         required: true
+ *         description: The ID of the season
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A list of episodes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Episode'
+ */
+router.get('/episodes/:seasonId', getEpisodes);
+
+/**
+ * @swagger
+ * /episodes:
+ *   post:
+ *     summary: Add a new episode
+ *     tags: [Episodes]
+ *     security:
+ *       - UserIdHeader: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Episode'
+ *     responses:
+ *       200:
+ *         description: The created episode
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Episode'
+ */
+router.post('/episodes', authMiddleware, addEpisode);
+
+/**
+ * @swagger
+ * /episodes/{id}:
+ *   put:
+ *     summary: Update an episode
+ *     tags: [Episodes]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the episode to update
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Episode'
+ *     responses:
+ *       200:
+ *         description: The updated episode
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Episode'
+ */
+router.put('/episodes/:id', authMiddleware, updateEpisode);
+
+/**
+ * @swagger
+ * /episodes/{id}:
+ *   delete:
+ *     summary: Delete an episode
+ *     tags: [Episodes]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the episode to delete
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Episode deleted successfully
+ */
+router.delete('/episodes/:id', authMiddleware, deleteEpisode);
+
+/**
+ * @swagger
+ * tags:
+ *   name: Payments
+ *   description: Payment management
+ */
+
+/**
+ * @swagger
+ * /payments:
+ *   get:
+ *     summary: Get all payments
+ *     tags: [Payments]
+ *     security:
+ *       - UserIdHeader: []
+ *     responses:
+ *       200:
+ *         description: A list of payments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Payment'
+ */
+router.get('/payments', authMiddleware, getPayments);
+
+/**
+ * @swagger
+ * /payments:
+ *   post:
+ *     summary: Add a new payment
+ *     tags: [Payments]
+ *     security:
+ *       - UserIdHeader: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Payment'
+ *     responses:
+ *       200:
+ *         description: The created payment
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Payment'
+ */
+router.post('/payments', authMiddleware, addPayment);
+
+/**
+ * @swagger
+ * /payments/{id}:
+ *   put:
+ *     summary: Update a payment
+ *     tags: [Payments]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the payment to update
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 example: 12.99
+ *     responses:
+ *       200:
+ *         description: The updated payment
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Payment'
+ */
+router.put('/payments/:id', authMiddleware, updatePayment);
+
+/**
+ * @swagger
+ * /payments/{id}:
+ *   delete:
+ *     summary: Delete a payment
+ *     tags: [Payments]
+ *     security:
+ *       - UserIdHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the payment to delete
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Payment deleted successfully
+ */
+router.delete('/payments/:id', authMiddleware, deletePayment);
+
+// Swagger setup
+const swaggerOptions = {
+    swaggerDefinition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'TV Show Admin Dashboard API',
+            version: '1.0.0',
+            description: 'API documentation for managing TV shows, seasons, episodes, and payments.',
+        },
+        components: {
+            securitySchemes: {
+                UserIdHeader: {
+                    type: 'apiKey',
+                    in: 'header',
+                    name: 'x-user-id',
+                },
+            },
+        },
+    },
+    apis: ['./src/routes/index.ts'], // Path to the API docs
+};
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+export default router;
+
+
+  server.ts:
+  import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import routes from './routes/index';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import logger from './logger';
+import rateLimit from 'express-rate-limit';
+import errorHandler from './middleware/errorHandler';
+import requestIdMiddleware from './middleware/requestId';
+
+const app = express();
+const PORT = process.env.PORT || 4000;
+// Modify as per local setup
+const mongoURI = 'mongodb://localhost:27017/tvshows';
+
+app.use(cors());
+app.use(helmet()); // Use Helmet for HTTP headers security
+app.use(bodyParser.json({ limit: '1mb' })); // Limit the size of the request body to prevent overflow attack
+app.use(morgan('combined', { stream: { write: (message) => logger.error(message.trim()) } })); // Log HTTP requests
+app.use(requestIdMiddleware);
+
+// Apply rate limiting to all requests
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+});
+app.use(limiter);
+
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => logger.error('MongoDB connection error:', err));
+
+app.use('/api', routes);
+
+app.use(errorHandler);
+
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
+
+
+  swagger.ts:
+  import swaggerJsDoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+
+const swaggerOptions = {
+    swaggerDefinition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'TV Show Admin Dashboard API',
+            version: '1.0.0',
+            description: 'API documentation for the TV Show Admin Dashboard',
+        },
+        servers: [
+            {
+                url: 'http://localhost:5000/api',
+            },
+        ],
+    },
+    apis: ['./src/routes/*.ts'], // Path to the API docs
+};
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+
+export const setupSwagger = (app: any) => {
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+};
+
+
+  tests/
+    testAPi.ts:
+    import axios from 'axios';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from .env file in the root project folder
+dotenv.config({ path: path.join(__dirname, '../../../.env') });
+
+const BASE_URL = 'http://localhost:4000/api'; // Adjust the base URL if necessary
+const USER_ID = process.env.ADMIN_USER_ID; // Read Admin user ID from the .env file
+
+const testApiEndpoints = async () => {
+    try {
+        // Check if USER_ID is defined
+        if (!USER_ID) {
+            throw new Error('ADMIN_USER_ID is not defined in the .env file');
+        }
+
+        // Test TV Series Endpoints
+        console.log('Testing TV Series Endpoints...');
+        
+        // Create TV Series
+        const newSeries = { title: 'Test TV Series', description: 'Test Description' };
+        const createSeriesResponse = await axios.post(`${BASE_URL}/tvseries`, newSeries, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Create TV Series Response:', createSeriesResponse.data);
+
+        // Get TV Series
+        const getSeriesResponse = await axios.get(`${BASE_URL}/tvseries`, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Get TV Series Response:', getSeriesResponse.data);
+
+        // Update TV Series
+        const updatedSeries = { title: 'Updated TV Series', description: 'Updated Description' };
+        const updateSeriesResponse = await axios.put(`${BASE_URL}/tvseries/${createSeriesResponse.data._id}`, updatedSeries, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Update TV Series Response:', updateSeriesResponse.data);
+
+        // Delete TV Series
+        await axios.delete(`${BASE_URL}/tvseries/${createSeriesResponse.data._id}`, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Deleted TV Series');
+
+        // Test Season Endpoints
+        console.log('Testing Season Endpoints...');
+        
+        // Create Season with userIds
+        const newSeason = { title: 'Test Season', tvSeries: createSeriesResponse.data._id, userIds: [USER_ID] }; // Associate the admin user
+        const createSeasonResponse = await axios.post(`${BASE_URL}/seasons`, newSeason, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Create Season Response:', createSeasonResponse.data);
+
+        // Get Seasons
+        const getSeasonsResponse = await axios.get(`${BASE_URL}/seasons/${createSeriesResponse.data._id}`, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Get Seasons Response:', getSeasonsResponse.data);
+
+        // Update Season
+        const updatedSeason = { title: 'Updated Season', userIds: [USER_ID] }; // Update userIds if needed
+        const updateSeasonResponse = await axios.put(`${BASE_URL}/seasons/${createSeasonResponse.data._id}`, updatedSeason, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Update Season Response:', updateSeasonResponse.data);
+
+        // Delete Season
+        await axios.delete(`${BASE_URL}/seasons/${createSeasonResponse.data._id}`, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Deleted Season');
+
+        // Test Episode Endpoints
+        console.log('Testing Episode Endpoints...');
+        
+        // Create Episode
+        const newEpisode = { title: 'Test Episode', season: createSeasonResponse.data._id };
+        const createEpisodeResponse = await axios.post(`${BASE_URL}/episodes`, newEpisode, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Create Episode Response:', createEpisodeResponse.data);
+
+        // Get Episodes
+        const getEpisodesResponse = await axios.get(`${BASE_URL}/episodes/${createSeasonResponse.data._id}`, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Get Episodes Response:', getEpisodesResponse.data);
+
+        // Update Episode
+        const updatedEpisode = { title: 'Updated Episode' };
+        const updateEpisodeResponse = await axios.put(`${BASE_URL}/episodes/${createEpisodeResponse.data._id}`, updatedEpisode, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Update Episode Response:', updateEpisodeResponse.data);
+
+        // Delete Episode
+        await axios.delete(`${BASE_URL}/episodes/${createEpisodeResponse.data._id}`, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Deleted Episode');
+
+        // Test Payment Endpoints
+        console.log('Testing Payment Endpoints...');
+        
+        // Create Payment
+        const newPayment = { userId: USER_ID, season: createSeasonResponse.data._id, amount: 50 };
+        const createPaymentResponse = await axios.post(`${BASE_URL}/payments`, newPayment, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Create Payment Response:', createPaymentResponse.data);
+
+        // Get Payments
+        const getPaymentsResponse = await axios.get(`${BASE_URL}/payments`, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Get Payments Response:', getPaymentsResponse.data);
+
+        // Update Payment
+        const updatedPayment = { amount: 75 };
+        const updatePaymentResponse = await axios.put(`${BASE_URL}/payments/${createPaymentResponse.data._id}`, updatedPayment, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Update Payment Response:', updatePaymentResponse.data);
+
+        // Delete Payment
+        await axios.delete(`${BASE_URL}/payments/${createPaymentResponse.data._id}`, {
+            headers: { 'x-user-id': USER_ID }
+        });
+        console.log('Deleted Payment');
+
+    } catch (error) {
+        console.log(error);
+        console.error('Error testing API:', (error as any).response ? (error as any).response.data : (error as any).message);
+    }
+};
+
+testApiEndpoints();
+
+
+tsconfig.json:
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist"
+  },
+  "baseUrl": "./src",
+  "paths": {
+      "@/*": ["*"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
+
+
+version_check.sh:
+#!/bin/bash
+
+# Check for outdated packages and print the latest versions
+echo "Checking for outdated packages..."
+
+# Run npm outdated and format the output
+npm outdated --json | jq -r 'to_entries | .[] | "\(.key): \(.value.latest)"'
+
+
